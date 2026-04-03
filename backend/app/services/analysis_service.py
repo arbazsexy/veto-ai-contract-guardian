@@ -62,7 +62,7 @@ class AnalysisService:
         rule: AnalysisRule,
         input_quality: InputQuality,
     ) -> Finding:
-        match = next((pattern for pattern in rule.patterns if self._phrase_matches(lower, pattern)), None)
+        match = self._match_phrase_for_rule(lower, rule)
         if match is None:
             fallback_risk = RiskLevel.negotiable if rule.risk == RiskLevel.safe else RiskLevel.safe
             return Finding(
@@ -106,6 +106,32 @@ class AnalysisService:
     @staticmethod
     def _normalize_text(text: str) -> str:
         return re.sub(r"\s+", " ", text).strip()
+
+    def _match_phrase_for_rule(self, lower_text: str, rule: AnalysisRule) -> str | None:
+        title = rule.title
+
+        if title == "Late payment window":
+            payment_match = re.search(r"\bnet[-\s]?(\d{2,3})\b", lower_text)
+            if payment_match and int(payment_match.group(1)) >= 45:
+                return payment_match.group(0)
+            days_match = re.search(r"\b(?:within\s+)?(45|60|75|90)\s+days\b", lower_text)
+            if days_match:
+                return days_match.group(0)
+
+        if title == "Payment conditioned on client approval":
+            if "accepted by client" in lower_text:
+                return "accepted by client"
+            if "sole discretion" in lower_text:
+                return "sole discretion"
+            if "subject to client approval" in lower_text:
+                return "subject to client approval"
+            if "payment" in lower_text and "approval" in lower_text:
+                return "payment subject to approval"
+
+        for pattern in rule.patterns:
+            if self._phrase_matches(lower_text, pattern):
+                return pattern
+        return None
 
     @staticmethod
     def _phrase_matches(lower_text: str, phrase: str) -> bool:
@@ -186,6 +212,14 @@ class AnalysisService:
                 score -= rule.penalty
             elif finding.risk == RiskLevel.safe and not self._finding_triggered(finding):
                 score -= rule.penalty
+
+        titles = {finding.title for finding in findings if self._finding_triggered(finding)}
+        if {"Payment conditioned on client approval", "Termination for convenience"}.issubset(titles):
+            score -= 8
+        if {"Open-ended scope language", "Defined scope and deliverables"}.issubset(titles):
+            score -= 6
+        if {"Full IP transfer", "Missing upfront deposit"}.issubset(titles):
+            score -= 6
         return max(12, min(98, score))
 
     def _resolve_verdict(self, *, guardian_score: int, findings: list[Finding]) -> Verdict:

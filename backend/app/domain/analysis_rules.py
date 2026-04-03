@@ -90,12 +90,31 @@ DEFAULT_ANALYSIS_RULES: tuple[AnalysisRule, ...] = (
         miss_script="No change needed here.",
     ),
     AnalysisRule(
+        title="Payment conditioned on client approval",
+        category=FindingCategory.money_risk,
+        risk=RiskLevel.danger,
+        patterns=("accepted by client", "sole discretion", "subject to client approval", "if approved by client"),
+        penalty=22,
+        priority=90,
+        fallback_snippet="No payment-on-approval clause detected.",
+        hit_explanation=(
+            "If payment depends on client approval or sole discretion, the freelancer may deliver work and still have no clear payment protection."
+        ),
+        miss_explanation=(
+            "There is no obvious wording that makes payment depend entirely on client approval or sole discretion."
+        ),
+        hit_script=(
+            "Hi, I need payment to be tied to objective milestones or delivery, not solely to discretionary approval. Could we define acceptance criteria and confirm payment for completed work?"
+        ),
+        miss_script="No change needed here.",
+    ),
+    AnalysisRule(
         title="Late payment window",
         category=FindingCategory.money_risk,
         risk=RiskLevel.negotiable,
         patterns=("net 45", "net-45", "net 60", "net-60", "45 days", "60 days", "within sixty"),
         penalty=14,
-        priority=74,
+        priority=76,
         fallback_snippet="No extended payment window detected.",
         hit_explanation=(
             "A long payment cycle can create cash flow pressure and is usually worth "
@@ -162,7 +181,7 @@ DEFAULT_ANALYSIS_RULES: tuple[AnalysisRule, ...] = (
         title="Termination for convenience",
         category=FindingCategory.client_control_risk,
         risk=RiskLevel.negotiable,
-        patterns=("terminate at any time", "without cause", "for convenience"),
+        patterns=("terminate at any time", "without cause", "for convenience", "terminate this agreement at any time"),
         penalty=13,
         priority=70,
         fallback_snippet="No easy termination clause detected.",
@@ -174,6 +193,25 @@ DEFAULT_ANALYSIS_RULES: tuple[AnalysisRule, ...] = (
         hit_script=(
             "Hi, I am okay with a termination clause, but it should include written notice "
             "and payment for all work completed up to the termination date."
+        ),
+        miss_script="No change needed here.",
+    ),
+    AnalysisRule(
+        title="Open-ended scope language",
+        category=FindingCategory.scope_risk,
+        risk=RiskLevel.negotiable,
+        patterns=("as needed", "from time to time", "as requested by client", "as reasonably requested"),
+        penalty=11,
+        priority=66,
+        fallback_snippet="No clearly open-ended scope wording detected.",
+        hit_explanation=(
+            "Open-ended scope language can expand the job far beyond the original price or timeline if limits are not defined."
+        ),
+        miss_explanation=(
+            "There is no obvious open-ended scope wording driving unlimited tasks or shifting deliverables."
+        ),
+        hit_script=(
+            "Hi, could we tighten the scope wording so deliverables, revision limits, and change requests are clearly defined? That will help both sides avoid confusion later."
         ),
         miss_script="No change needed here.",
     ),
