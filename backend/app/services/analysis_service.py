@@ -109,7 +109,10 @@ class AnalysisService:
 
     @staticmethod
     def _phrase_matches(lower_text: str, phrase: str) -> bool:
-        escaped = re.escape(phrase.lower()).replace(r"\ ", r"\s+").replace(r"\-", r"[-\s]?")
+        simple_phrase = phrase.lower()
+        if " " not in simple_phrase and "-" not in simple_phrase:
+            return simple_phrase in lower_text
+        escaped = re.escape(simple_phrase).replace(r"\ ", r"\s+").replace(r"\-", r"[-\s]?")
         pattern = rf"(?<!\w){escaped}(?!\w)"
         return re.search(pattern, lower_text) is not None
 
@@ -264,7 +267,7 @@ class AnalysisService:
     def _rule_for_title(self, title: str) -> AnalysisRule:
         return self._rules_by_title[title]
 
-    def _finding_sort_key(self, finding: Finding) -> tuple[int, int, str]:
+    def _finding_sort_key(self, finding: Finding) -> tuple[int, int, int]:
         rule = self._rule_for_title(finding.title)
         risk_rank = {
             RiskLevel.danger: 0,
