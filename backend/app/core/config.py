@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     app_name: str = "Contract Guardian API"
     app_version: str = "0.1.0"
+    analyze_rate_limit: int = 40
+    analyze_rate_window_seconds: int = 60
     allowed_origins: list[str] = Field(
         default_factory=lambda: [
             "http://localhost:3000",
